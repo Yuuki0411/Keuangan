@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Keuangan">
+<title>Keuangan Harian</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="head-top">
+      <div>
+        <h1>💰 Keuangan Harian</h1>
+        <span class="status-cloud" id="statusCloud"><i class="dot"></i><span id="statusCloudText">Memuat…</span></span>
+      </div>
+      <div class="saldo-utama">
+        <span class="label">Saldo</span>
+        <strong id="saldoBesar">Rp0</strong>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <section id="tab-beranda" class="tab aktif">
+      <div class="chips">
+        <div class="chip masuk"><span>⬇️ Masuk</span><b id="chipMasuk">Rp0</b></div>
+        <div class="chip keluar"><span>⬆️ Keluar</span><b id="chipKeluar">Rp0</b></div>
+        <div class="chip saldo"><span>🏦 Saldo</span><b id="chipSaldo">Rp0</b></div>
+      </div>
+
+      <div class="panel">
+        <h2>➕ Transaksi Baru</h2>
+        <form id="formTransaksi">
+          <div class="jenis-toggle">
+            <button type="button" id="btnJenisKeluar" onclick="setJenis('keluar')">⬆️ Keluar</button>
+            <button type="button" id="btnJenisMasuk" onclick="setJenis('masuk')">⬇️ Masuk</button>
+          </div>
+          <input type="number" id="jumlah" inputmode="decimal" min="0" step="any" placeholder="Jumlah (Rp)" required>
+          <input type="text" id="keterangan" placeholder="Keterangan (mis. makan siang)" required>
+          <input type="date" id="tanggal" required>
+          <button type="submit" class="btn-simpan" id="btnSimpan">Simpan</button>
+        </form>
+      </div>
+
+      <div class="list-head">
+        <h2>📋 Riwayat <small id="jmlTrans"></small></h2>
+        <div class="filter">
+          <input type="month" id="filterBulan">
+          <button type="button" id="btnSemua" onclick="resetFilter()">Semua</button>
+        </div>
+      </div>
+      <div id="daftar"></div>
+    </section>
+
+    <section id="tab-grafik" class="tab">
+      <div class="panel">
+        <h2>📊 Grafik Masuk vs Keluar</h2>
+        <div class="chart-wrap"><canvas id="grafik"></canvas></div>
+        <p id="grafikKosong" class="kosong" style="display:none">Belum ada data.</p>
+      </div>
+      <div class="panel ringkasan-grafik" id="ringkasanGrafik"></div>
+    </section>
+
+    <section id="tab-kalkulator" class="tab">
+      <div class="panel">
+        <h2>🧮 Kalkulator</h2>
+        <div class="calc-display">
+          <div class="calc-expr" id="calcExpr">&nbsp;</div>
+          <div class="calc-hasil" id="calcHasil">0</div>
+        </div>
+        <div class="calc-grid">
+          <button type="button" class="bersih" onclick="calcClear()">C</button>
+          <button type="button" onclick="calcBack()">⌫</button>
+          <button type="button" class="op" onclick="calcInput('%')">%</button>
+          <button type="button" class="op" onclick="calcInput('/')">÷</button>
+          <button type="button" onclick="calcInput('7')">7</button>
+          <button type="button" onclick="calcInput('8')">8</button>
+          <button type="button" onclick="calcInput('9')">9</button>
+          <button type="button" class="op" onclick="calcInput('*')">×</button>
+          <button type="button" onclick="calcInput('4')">4</button>
+          <button type="button" onclick="calcInput('5')">5</button>
+          <button type="button" onclick="calcInput('6')">6</button>
+          <button type="button" class="op" onclick="calcInput('-')">−</button>
+          <button type="button" onclick="calcInput('1')">1</button>
+          <button type="button" onclick="calcInput('2')">2</button>
+          <button type="button" onclick="calcInput('3')">3</button>
+          <button type="button" class="op" onclick="calcInput('+')">+</button>
+          <button type="button" onclick="calcInput('(')">(</button>
+          <button type="button" onclick="calcInput('0')">0</button>
+          <button type="button" onclick="calcInput('.')">.</button>
+          <button type="button" class="samadengan" onclick="calcEquals()">=</button>
+        </div>
+        <button type="button" class="btn-hasil" onclick="pakaiHasil()">➜ Gunakan Hasil sebagai Jumlah</button>
+      </div>
+    </section>
+
+    <section id="tab-pengaturan" class="tab">
+      <div class="panel">
+        <h2>👤 Akun</h2>
+        <p class="status-detail" id="akunInfo">Tidak ada akun aktif (mode lokal).</p>
+        <button type="button" class="btn-utama" id="btnAksiAkun" onclick="aksiAkun()">🔐 Masuk / Daftar</button>
+      </div>
+
+      <div class="panel">
+        <h2>☁️ Koneksi Database Online</h2>
+        <p class="status-detail muted" id="cfgStatus"></p>
+        <input type="text" id="cfgUrl" placeholder="Project URL Supabase (https://xxx.supabase.co)">
+        <input type="text" id="cfgKey" placeholder="Anon public key Supabase" style="margin-top:8px">
+        <div class="baris-tombol">
+          <button type="button" class="btn-utama" onclick="simpanCfg()">💾 Simpan Koneksi</button>
+          <button type="button" class="btn-kedua" onclick="hapusCfg()">Hapus</button>
+        </div>
+        <p class="status-detail muted" style="margin-top:8px">Ambil URL &amp; anon key di Supabase → Project Settings → API. Database &amp; tabel dibuat lewat file supabase-setup.sql.</p>
+      </div>
+
+      <div class="panel">
+        <h2>🔄 Sinkronisasi</h2>
+        <p class="status-detail muted">Sinkron terakhir: <span id="setLastSync">–</span></p>
+        <button type="button" class="btn-kedua" onclick="syncNow(true)">🔄 Sinkronkan Sekarang</button>
+      </div>
+
+      <div class="panel">
+        <h2>💾 Data</h2>
+        <p class="status-detail muted" id="setDataInfo"></p>
+        <button type="button" class="btn-kedua" onclick="backupJson()">⬇️ Unduh Cadangan (JSON)</button>
+      </div>
+
+      <p class="versi">Keuangan Harian v1.1 · Login multi-akun + Supabase</p>
+    </section>
+
+  </main>
+
+  <nav id="navBawah">
+    <button type="button" class="aktif" data-tab="beranda">🏠<span>Beranda</span></button>
+    <button type="button" data-tab="grafik">📊<span>Grafik</span></button>
+    <button type="button" data-tab="kalkulator">🧮<span>Kalkulator</span></button>
+    <button type="button" data-tab="pengaturan">⚙️<span>Setelan</span></button>
+  </nav>
+</div>
+
+<div id="loginScreen" class="login-screen" style="display:none">
+  <div class="login-card">
+    <div class="login-logo">💰</div>
+    <h2>Keuangan Harian</h2>
+    <p class="login-sub">Masuk agar data Anda tersimpan online &amp; terpisah dari akun lain</p>
+    <input type="email" id="loginEmail" placeholder="Email" autocomplete="email">
+    <input type="password" id="loginPass" placeholder="Password (min. 6 karakter)" autocomplete="current-password">
+    <button type="button" class="btn-utama" id="btnLoginMasuk" onclick="masuk()">🔐 Masuk</button>
+    <button type="button" class="btn-kedua" id="btnLoginDaftar" onclick="daftar()">📝 Daftar Akun Baru</button>
+    <p class="login-msg" id="loginMsg"></p>
+    <a href="#" class="login-lewati" onclick="lewatiLogin(); return false;">Lewati — pakai tanpa akun (data hanya di perangkat ini)</a>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
+</body>
+</html>

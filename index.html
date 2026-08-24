@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alur Keuangan Harian</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#f1f5f9; --card:#ffffff; --text:#0f172a; --muted:#64748b;
+    --green:#16a34a; --green-bg:#dcfce7; --red:#dc2626; --red-bg:#fee2e2;
+    --primary:#2563eb; --border:#e2e8f0; --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+  body{background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:40px}
+  header{background:linear-gradient(135deg,#1e3a8a,#2563eb 60%,#3b82f6);color:#fff;padding:28px 20px 70px;text-align:center}
+  header h1{font-size:1.5rem;margin-bottom:4px}
+  header p{opacity:.85;font-size:.9rem}
+  .saldo-besar{margin-top:14px;font-size:2rem;font-weight:700}
+  main{max-width:1000px;margin:-45px auto 0;padding:0 16px;display:flex;flex-direction:column;gap:18px}
+
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:0 4px 14px rgba(15,23,42,.08);text-align:center}
+  .card .label{font-size:.8rem;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:6px}
+  .card .nilai{font-size:1.15rem;font-weight:700;margin-top:6px}
+  .masuk-c .nilai{color:var(--green)} .keluar-c .nilai{color:var(--red)}
+
+  .panel{background:var(--card);border-radius:var(--radius);padding:20px;box-shadow:0 4px 14px rgba(15,23,42,.06)}
+  .panel h2{font-size:1.05rem;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .dua-kolom{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+
+  form .baris{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+  form label{font-size:.85rem;font-weight:600;color:var(--muted)}
+  input[type=text],input[type=number],input[type=date],select{
+    padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:1rem;background:#fff;width:100%}
+  input:focus,select:focus{outline:none;border-color:var(--primary)}
+  .jenis-toggle{display:flex;gap:8px}
+  .jenis-toggle button{flex:1;padding:10px;border:1.5px solid var(--border);background:#fff;border-radius:10px;font-weight:600;cursor:pointer;font-size:.95rem}
+  .jenis-toggle .aktif-masuk{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+  .jenis-toggle .aktif-keluar{background:var(--red-bg);border-color:var(--red);color:var(--red)}
+  .tombol-simpan{width:100%;padding:12px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:1rem;font-weight:600;cursor:pointer}
+  .tombol-simpan:hover{filter:brightness(1.1)}
+
+  /* Kalkulator */
+  .calc-display{background:#0f172a;color:#fff;border-radius:10px;padding:14px;text-align:right;margin-bottom:12px;min-height:64px;display:flex;flex-direction:column;justify-content:center}
+  .calc-expr{font-size:.85rem;color:#94a3b8;min-height:1.1em;word-break:break-all}
+  .calc-hasil{font-size:1.4rem;font-weight:700;word-break:break-all}
+  .calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .calc-grid button{padding:13px 0;font-size:1.05rem;border:1.5px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;font-weight:600}
+  .calc-grid button:hover{background:#f1f5f9}
+  .calc-grid .op{background:#eff6ff;color:var(--primary);border-color:#bfdbfe}
+  .calc-grid .samadengan{background:var(--primary);color:#fff;border-color:var(--primary)}
+  .calc-grid .bersih{background:var(--red-bg);color:var(--red);border-color:#fecaca}
+  .pakai-hasil{width:100%;margin-top:10px;padding:11px;border:none;border-radius:10px;background:var(--green);color:#fff;font-weight:600;cursor:pointer}
+
+  /* Grafik */
+  .chart-wrap{position:relative;height:340px}
+
+  /* Filter + Daftar */
+  .list-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .list-head h2{margin-bottom:0}
+  .filter{display:flex;gap:8px;align-items:center}
+  .filter input[type=month]{padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:.9rem}
+  .filter button{padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-size:.85rem}
+  .grup-tanggal{margin-bottom:14px}
+  .grup-tanggal .tgl-head{display:flex;justify-content:space-between;font-weight:700;font-size:.9rem;color:var(--muted);border-bottom:1.5px solid var(--border);padding-bottom:6px;margin-bottom:6px}
+  .item{display:flex;align-items:center;gap:12px;padding:10px 6px;border-radius:10px}
+  .item:hover{background:#f8fafc}
+  .ikon{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0}
+  .ikon.masuk{background:var(--green-bg);color:var(--green)}
+  .ikon.keluar{background:var(--red-bg);color:var(--red)}
+  .item .info{flex:1;min-width:0}
+  .item .ket{font-weight:600;font-size:.95rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .item .jam{font-size:.78rem;color:var(--muted)}
+  .item .nominal{font-weight:700;white-space:nowrap}
+  .nominal.masuk{color:var(--green)} .nominal.keluar{color:var(--red)}
+  .hapus{border:none;background:transparent;color:#94a3b8;cursor:pointer;font-size:1.1rem;padding:6px}
+  .hapus:hover{color:var(--red)}
+  .kosong{text-align:center;color:var(--muted);padding:26px 0;font-size:.95rem}
+
+  footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:8px}
+
+  @media(max-width:720px){
+    .cards{grid-template-columns:1fr 1fr}
+    .dua-kolom{grid-template-columns:1fr}
+    .card.saldo-c{grid-column:span 2}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>💰 Alur Keuangan Harian</h1>
+  <p>Catat uang masuk &amp; keluar setiap hari</p>
+  <div class="saldo-besar" id="saldoBesar">Rp0</div>
+</header>
+
+<main>
+  <!-- Ringkasan -->
+  <section class="cards">
+    <div class="card masuk-c">
+      <div class="label">⬇️ Uang Masuk</div>
+      <div class="nilai" id="totMasuk">Rp0</div>
+    </div>
+    <div class="card keluar-c">
+      <div class="label">⬆️ Uang Keluar</div>
+      <div class="nilai" id="totKeluar">Rp0</div>
+    </div>
+    <div class="card saldo-c">
+      <div class="label">🏦 Saldo</div>
+      <div class="nilai" id="totSaldo">Rp0</div>
+    </div>
+  </section>
+
+  <section class="dua-kolom">
+    <!-- Form transaksi -->
+    <div class="panel">
+      <h2>➕ Tambah Transaksi</h2>
+      <form id="formTransaksi">
+        <div class="baris">
+          <label>Jenis</label>
+          <div class="jenis-toggle">
+            <button type="button" id="btnMasuk" onclick="setJenis('masuk')">⬇️ Masuk</button>
+            <button type="button" id="btnKeluar" onclick="setJenis('keluar')">⬆️ Keluar</button>
+          </div>
+        </div>
+        <div class="baris">
+          <label for="jumlah">Jumlah (Rp)</label>
+          <input type="number" id="jumlah" min="0" step="any" placeholder="contoh: 50000" required>
+        </div>
+        <div class="baris">
+          <label for="keterangan">Keterangan</label>
+          <input type="text" id="keterangan" placeholder="contoh: Gaji, makan siang, transport..." required>
+        </div>
+        <div class="baris">
+          <label for="tanggal">Tanggal</label>
+          <input type="date" id="tanggal" required>
+        </div>
+        <button type="submit" class="tombol-simpan" id="btnSimpan">Simpan Transaksi</button>
+      </form>
+    </div>
+
+    <!-- Kalkulator -->
+    <div class="panel">
+      <h2>🧮 Kalkulator Pengeluaran</h2>
+      <div class="calc-display">
+        <div class="calc-expr" id="calcExpr">&nbsp;</div>
+        <div class="calc-hasil" id="calcHasil">0</div>
+      </div>
+      <div class="calc-grid">
+        <button type="button" class="bersih" onclick="calcClear()">C</button>
+        <button type="button" onclick="calcBack()">⌫</button>
+        <button type="button" class="op" onclick="calcInput('%')">%</button>
+        <button type="button" class="op" onclick="calcInput('/')">÷</button>
+        <button type="button" onclick="calcInput('7')">7</button>
+        <button type="button" onclick="calcInput('8')">8</button>
+        <button type="button" onclick="calcInput('9')">9</button>
+        <button type="button" class="op" onclick="calcInput('*')">×</button>
+        <button type="button" onclick="calcInput('4')">4</button>
+        <button type="button" onclick="calcInput('5')">5</button>
+        <button type="button" onclick="calcInput('6')">6</button>
+        <button type="button" class="op" onclick="calcInput('-')">−</button>
+        <button type="button" onclick="calcInput('1')">1</button>
+        <button type="button" onclick="calcInput('2')">2</button>
+        <button type="button" onclick="calcInput('3')">3</button>
+        <button type="button" class="op" onclick="calcInput('+')">+</button>
+        <button type="button" onclick="calcInput('(')">(</button>
+        <button type="button" onclick="calcInput('0')">0</button>
+        <button type="button" onclick="calcInput('.')">.</button>
+        <button type="button" class="samadengan" onclick="calcEquals()">=</button>
+      </div>
+      <button type="button" class="pakai-hasil" onclick="pakaiHasil()">➜ Gunakan Hasil sebagai Jumlah Transaksi</button>
+    </div>
+  </section>
+
+  <!-- Grafik -->
+  <div class="panel">
+    <h2>📊 Grafik Keuangan</h2>
+    <div class="chart-wrap"><canvas id="grafik"></canvas></div>
+    <p id="chartKosong" class="kosong" style="display:none">Belum ada data untuk ditampilkan.</p>
+  </div>
+
+  <!-- Daftar transaksi -->
+  <div class="panel">
+    <div class="list-head">
+      <h2>📋 Riwayat Transaksi (<span id="jmlTrans">0</span>)</h2>
+      <div class="filter">
+        <input type="month" id="filterBulan" title="Filter bulan">
+        <button type="button" onclick="resetFilter()">Semua</button>
+      </div>
+    </div>
+    <div id="daftarTransaksi"></div>
+  </div>
+
+  <footer>Data tersimpan otomatis di browser ini (localStorage). Jangan hapus data situs/riwayat browser agar catatan tidak hilang.</footer>
+</main>
+
+<script>
+// ================= DATA =================
+const KEY = 'alurKeuangan_data';
+let data = JSON.parse(localStorage.getItem(KEY) || '[]');
+let jenisAktif = 'keluar';
+let grafik = null;
+
+function simpan(){ localStorage.setItem(KEY, JSON.stringify(data)); }
+
+function formatRupiah(n){
+  return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0,maximumFractionDigits:0}).format(n);
+}
+function tanggalIndo(iso){
+  const d = new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+function hariIni(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+// ================= FORM =================
+function setJenis(j){
+  jenisAktif = j;
+  document.getElementById('btnMasuk').className = j==='masuk' ? 'aktif-masuk' : '';
+  document.getElementById('btnKeluar').className = j==='keluar' ? 'aktif-keluar' : '';
+  document.getElementById('btnSimpan').style.background = j==='masuk' ? '#16a34a' : '#2563eb';
+}
+document.getElementById('tanggal').value = hariIni();
+setJenis('keluar');
+
+document.getElementById('formTransaksi').addEventListener('submit', function(e){
+  e.preventDefault();
+  const jumlah = parseFloat(document.getElementById('jumlah').value);
+  const ket = document.getElementById('keterangan').value.trim();
+  const tgl = document.getElementById('tanggal').value || hariIni();
+  if(!jumlah || jumlah<=0 || !ket) return;
+  data.push({id:Date.now()+''+Math.floor(Math.random()*999), jenis:jenisAktif, jumlah:jumlah, ket:ket, tanggal:tgl,
+             jam:new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})});
+  simpan(); render();
+  this.reset();
+  document.getElementById('tanggal').value = hariIni();
+});
+
+function hapusTransaksi(id){
+  if(confirm('Hapus transaksi ini?')){
+    data = data.filter(t=>t.id!==id);
+    simpan(); render();
+  }
+}
+
+function resetFilter(){ document.getElementById('filterBulan').value=''; render(); }
+document.getElementById('filterBulan').addEventListener('change', render);
+
+function dataTersaring(){
+  const f = document.getElementById('filterBulan').value;
+  let arr = [...data];
+  if(f) arr = arr.filter(t=>t.tanggal.startsWith(f));
+  return arr.sort((a,b)=> b.tanggal.localeCompare(a.tanggal) || (b.id>a.id?1:-1));
+}
+
+// ================= RENDER =================
+function render(){
+  const arr = dataTersaring();
+
+  // Ringkasan
+  const totMasuk = arr.filter(t=>t.jenis==='masuk').reduce((s,t)=>s+t.jumlah,0);
+  const totKeluar= arr.filter(t=>t.jenis==='keluar').reduce((s,t)=>s+t.jumlah,0);
+  const saldo = totMasuk - totKeluar;
+  document.getElementById('totMasuk').textContent = formatRupiah(totMasuk);
+  document.getElementById('totKeluar').textContent = formatRupiah(totKeluar);
+  document.getElementById('totSaldo').textContent = formatRupiah(saldo);
+  const sb = document.getElementById('saldoBesar');
+  sb.textContent = formatRupiah(saldo);
+  sb.style.color = saldo<0 ? '#fecaca' : '#fff';
+
+  // Daftar per tanggal
+  document.getElementById('jmlTrans').textContent = arr.length + ' data';
+  const wadah = document.getElementById('daftarTransaksi');
+  if(arr.length===0){
+    wadah.innerHTML = '<p class="kosong">Belum ada transaksi. Mulai catat di form "Tambah Transaksi".</p>';
+  } else {
+    const grup = {};
+    arr.forEach(t=>{ (grup[t.tanggal]=grup[t.tanggal]||[]).push(t); });
+    wadah.innerHTML = Object.keys(grup).map(tgl=>{
+      const gMasuk = grup[tgl].filter(t=>t.jenis==='masuk').reduce((s,t)=>s+t.jumlah,0);
+      const gKeluar= grup[tgl].filter(t=>t.jenis==='keluar').reduce((s,t)=>s+t.jumlah,0);
+      return `<div class="grup-tanggal">
+        <div class="tgl-head"><span>📅 ${tanggalIndo(tgl)}</span><span>Masuk ${formatRupiah(gMasuk)} · Keluar ${formatRupiah(gKeluar)}</span></div>
+        ${grup[tgl].map(t=>`
+          <div class="item">
+            <div class="ikon ${t.jenis}">${t.jenis==='masuk'?'↓':'↑'}</div>
+            <div class="info">
+              <div class="ket">${escapeHtml(t.ket)}</div>
+              <div class="jam">${t.jam}</div>
+            </div>
+            <div class="nominal ${t.jenis}">${t.jenis==='masuk'?'+':'−'} ${formatRupiah(t.jumlah)}</div>
+            <button class="hapus" title="Hapus" onclick="hapusTransaksi('${t.id}')">🗑</button>
+          </div>`).join('')}
+      </div>`;
+    }).join('');
+  }
+
+  renderGrafik(arr);
+}
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ================= GRAFIK =================
+function renderGrafik(arr){
+  if(typeof Chart === 'undefined'){
+    document.querySelector('.chart-wrap').style.display='none';
+    const p = document.getElementById('chartKosong');
+    p.style.display='block';
+    p.textContent='Grafik butuh koneksi internet untuk memuat Chart.js.';
+    return;
+  }
+  const perTanggal = {};
+  arr.forEach(t=>{
+    perTanggal[t.tanggal] = perTanggal[t.tanggal] || {masuk:0, keluar:0};
+    perTanggal[t.tanggal][t.jenis] += t.jumlah;
+  });
+  const labels = Object.keys(perTanggal).sort().slice(-31);
+  if(labels.length===0){
+    if(grafik){ grafik.destroy(); grafik=null; }
+    document.querySelector('.chart-wrap').style.display='none';
+    const p = document.getElementById('chartKosong'); p.style.display='block';
+    p.textContent='Belum ada data untuk ditampilkan.'; return;
+  }
+  document.querySelector('.chart-wrap').style.display='';
+  document.getElementById('chartKosong').style.display='none';
+
+  const pendek = labels.map(l=> new Date(l+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short'}));
+  const dtMasuk = labels.map(l=>perTanggal[l].masuk);
+  const dtKeluar= labels.map(l=>perTanggal[l].keluar);
+
+  if(grafik) grafik.destroy();
+  grafik = new Chart(document.getElementById('grafik'), {
+    type:'bar',
+    data:{ labels:pendek, datasets:[
+      { label:'Uang Masuk', data:dtMasuk, backgroundColor:'#16a34a', borderRadius:6 },
+      { label:'Uang Keluar', data:dtKeluar, backgroundColor:'#dc2626', borderRadius:6 }
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'bottom'},
+        tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+formatRupiah(c.parsed.y)}}
+      },
+      scales:{ y:{beginAtZero:true, ticks:{callback:v=>'Rp'+(v>=1000000?(v/1000000)+'jt':v>=1000?(v/1000)+'rb':v)}} }
+    }
+  });
+}
+
+// ================= KALKULATOR =================
+let expr = '';
+let hasilTerakhir = null;
+
+function calcInput(ch){ expr += ch; updateCalc(false); }
+function calcClear(){ expr=''; hasilTerakhir=null; updateCalc(true); }
+function calcBack(){ expr = expr.slice(0,-1); updateCalc(true); }
+
+function hitungExpr(){
+  let e = expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-')
+              .replace(/(\d+(?:\.\d+)?)%/g,'($1/100)');
+  if(!e || !/^[\d+\-*/().%\s]+$/.test(e)) return null;
+  try{
+    const v = Function('"use strict";return ('+e+')')();
+    if(typeof v!=='number' || !isFinite(v)) return null;
+    return Math.round(v*100)/100;
+  }catch(_){ return null; }
+}
+function updateCalc(resetHasil){
+  document.getElementById('calcExpr').textContent = expr || '\u00A0';
+  const h = hitungExpr();
+  if(h!==null && !resetHasil){
+    hasilTerakhir = h;
+    document.getElementById('calcHasil').textContent = Number.isInteger(h)? h.toLocaleString('id-ID') : h.toLocaleString('id-ID',{maximumFractionDigits:2});
+  } else if(expr===''){
+    hasilTerakhir=null;
+    document.getElementById('calcHasil').textContent='0';
+  } else if(h===null && resetHasil){
+    document.getElementById('calcHasil').textContent='…';
+  } else {
+    document.getElementById('calcHasil').textContent = document.getElementById('calcHasil').textContent;
+  }
+}
+function calcEquals(){
+  const h = hitungExpr();
+  if(h!==null){ expr = String(h); hasilTerakhir=h;
+    document.getElementById('calcExpr').textContent = '=';
+    document.getElementById('calcHasil').textContent = Number.isInteger(h)? h.toLocaleString('id-ID') : h.toLocaleString('id-ID',{maximumFractionDigits:2});
+  } else { document.getElementById('calcHasil').textContent='Error'; }
+}
+function pakaiHasil(){
+  const h = hasilTerakhir!==null ? hasilTerakhir : hitungExpr();
+  if(h!==null && h>0){
+    document.getElementById('jumlah').value = h;
+    document.getElementById('jumlah').focus();
+  } else { alert('Hitung dulu angkanya di kalkulator.'); }
+}
+
+// Dukungan keyboard kalkulator saat fokus di area kalkulator
+document.addEventListener('keydown', e=>{
+  if(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='SELECT') return;
+  if(/^[0-9+\-*/().%]$/.test(e.key)){ calcInput(e.key); e.preventDefault(); }
+  else if(e.key==='Enter'){ calcEquals(); e.preventDefault(); }
+  else if(e.key==='Backspace'){ calcBack(); e.preventDefault(); }
+  else if(e.key==='Escape'){ calcClear(); e.preventDefault(); }
+});
+
+render();
+</script>
+</body>
+</html>
