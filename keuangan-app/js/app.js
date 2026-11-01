@@ -416,6 +416,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('tanggal').value = hariIni();
   setJenis('keluar');
   initCloud();
+  // Muat data toko aktif (mode lokal/tamu) sebelum render dan simpan pertama,
+  // supaya transaksi lama tidak tertimpa oleh db kosong.
+  db = muatDb();
   const cfg = getConfig();
   if (cfg) { $('cfgUrl').value = cfg.url; $('cfgKey').value = cfg.key; }
 

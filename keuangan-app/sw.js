@@ -1,5 +1,5 @@
 'use strict';
-const CACHE = 'keuangan-v1';
+const CACHE = 'keuangan-v2';
 const SHELL = [
   './',
   './index.html',
